@@ -23,12 +23,12 @@ def csv_rasymas():
   """
   irasom i csv faila
   """
-  fieldnames=['Pavadinimas', 'Img', 'Linkas', 'Aprasymas']
+  fieldnames=['Pavadinimas', 'Img', 'Linkas', 'Kaina']
   with open("Renault.csv", "w", encoding='utf-8', newline='') as file_writer:
     csv_write = csv.DictWriter(file_writer, fieldnames, delimiter = ',')
     csv_write.writeheader()
     for i in range(len(car_name)):
-        csv_write.writerow({"Pavadinimas": car_name[i], "Img": car_img[i], "Linkas": car_link[i],"Aprasymas": car_resume[i]}) 
+        csv_write.writerow({"Pavadinimas": car_name[i], "Img": car_img[i], "Linkas": car_link[i],"Kaina": car_price[i]}) 
 
 def get_url():
   """
@@ -38,49 +38,42 @@ def get_url():
   return HTML(data)
 
 def car_im():
+  """
+  Grazina paveiksleliu nuorodas
+  """
   car_img=[]
   for link in data.xpath("//a/img/@src"):
       car_img.append("https://www.renault.lt/" + link)
   return car_img
 
 def car_lin():
+  """
+  Grazina sarasa i konkreciu automobiliu puslapius
+  """
   car_link=[]
   for link in data.xpath("//a[@class='vehicle-item fp-cta-gtm']/@href"):
       car_link.append("https://www.renault.lt/" + link)
   return car_link
 
-def car_atribute():
-  car_atributes=[]
-  for i in car_link:
-    parse_url= get(i).text
-    parse_url= HTML(parse_url)
-    car_atributes.append(parse_url.xpath("//div[contains(@class,'col-md-3')]//span"))
-  return car_atributes
+def kaina(scraperis):
+  """
+  Grazina kainas formatu kaina: xxxxxx
+  """
+  kainos=[]
+  for scraperis in car_link:
+    data=get(scraperis).text
+    data=HTML(data)
+    text=data.xpath("//div/span[@class='prices_price']/span/text()")
+    price=data.xpath("//div/span[@class='prices_price']/text()")
+    if len(text) >0 and len(price) >= 2:
+      formated=price[1].strip()
+      formated1=str(formated[:-3]).replace("\xa0", "")
+      kainos.append(f"{text[0].strip().capitalize()}: {formated1} €")
+    else:
+     kainos.append("Nenurodyta")
+  return kainos
 
 
-def car_atribute_titl():
-  car_atributes_title=[]
-  for i in car_link:
-    parse_url= get(i).text
-    parse_url= HTML(parse_url)
-    car_atributes_title.append(parse_url.xpath("//div[@class='wysiwyg-block wysiwyg-block--16 wysiwyg-block--center']")) 
-  return car_atributes_title
-
-def car_resum(car_atributes_title, car_atributes):
-  c_atributes_list=[]
-  for c_a_set in car_atributes:
-    for i in c_a_set:
-      c_atributes_list.append(i.text)
-  c_atributes_list_t=[]
-  for c_a_set_a in car_atributes_title:
-    for i in c_a_set_a:
-      c_atributes_list_t.append(i.text)
-  car_resume=[]
-  for i in range(len(car_atributes_title)):
-    car_resume.append("")
-    for z in range(len(car_atributes[i])):
-      car_resume[i]=car_resume[i]+f"{c_atributes_list_t[z].replace("\r\n", "").strip()}: {c_atributes_list[z].strip()};   "
-  return car_resume
 
 data= get_url()
 
@@ -88,46 +81,12 @@ data= get_url()
 car_name=data.xpath("//a/img/@alt")
 #linkai i nuotraukas
 car_img=car_im()
-#for link in data.xpath("//a/img/@src"):
-    #car_img.append("https://www.renault.lt/" + link)
 
 #linkai i aprasymus
 car_link=car_lin()
-#for link in data.xpath("//a[@class='vehicle-item fp-cta-gtm']/@href"):
-    #car_link.append("https://www.renault.lt/" + link)
 
 #gaunam aprasymu reiksmes
-car_atributes=car_atribute()
-#for i in car_link:
-  #parse_url= get(i).text
-  #parse_url= HTML(parse_url)
-  #car_atributes.append(parse_url.xpath("//div[contains(@class,'col-md-3')]//span"))
 
-#gaunam aprasymu pavadinimus
-car_atributes_title=car_atribute_titl()
-#for i in car_link:
-  #parse_url= get(i).text
-  #parse_url= HTML(parse_url)
-  #car_atributes_title.append(parse_url.xpath("//div[@class='wysiwyg-block wysiwyg-block--16 wysiwyg-block--center']")) 
-
-#spausdinam aprasymus su ju pavadinimais
-"""
-c_atributes_list=[]
-for c_a_set in car_atributes:
-  for i in c_a_set:
-    c_atributes_list.append(i.text)
-c_atributes_list_t=[]
-for c_a_set_a in car_atributes_title:
-  for i in c_a_set_a:
-    c_atributes_list_t.append(i.text)
-
-#sudarom aprasyma
-car_resume=[]
-for i in range(len(car_atributes_title)):
-  car_resume.append("")
-  for z in range(len(car_atributes[i])):
-    car_resume[i]=car_resume[i]+f"{c_atributes_list_t[z].replace("\r\n", "").strip()}: {c_atributes_list[z].strip()};   "
-"""
-car_resume=car_resum(car_atributes_title, car_atributes)
+car_price=kaina(car_link)
 
 csv_rasymas()
